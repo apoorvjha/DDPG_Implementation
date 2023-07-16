@@ -1,0 +1,5 @@
+{
+    "n_episodes" : 100,
+    "experience_replay_buffer_cutoff" : 5000,
+    "TAU" : 0.001
+}

@@ -3,7 +3,7 @@ sys.path.insert(1, "../")
 import Network_Architecture
 import utility
 config = utility.read_configuration()
-sys.path.pop(1)
+# sys.path.pop(1)
 import numpy as np
 import torch
 

@@ -1,7 +1,8 @@
-from torch.nn import Module, Conv2d, MaxPool2d, Flatten, Linear, ReLU, Tanh 
+from torch.nn import Module, Conv2d, MaxPool2d, Flatten, Linear, ReLU, Tanh, MSELoss
+from torch.optim import Adam 
 
 class Network(Module):
-    def __init__(self, config):
+    def __init__(self, config, mode = 'actor'):
         super(Network, self).__init__()
         self.config = config
         if self.config['NetworkArchitecture']['type'] == 'CNN':
@@ -67,7 +68,10 @@ class Network(Module):
                 dialation = 1 
             )
             self.flat = Flatten()
-            self.dense_1 = Linear(256 * 5 * 5, 256)
+            if mode != 'actor':
+                self.dense_1 = Linear(256 * 5 * 5 + self.config['n_actions'], 256)
+            else:    
+                self.dense_1 = Linear(256 * 5 * 5, 256)
             self.dense_2 = Linear(256, 128)
             self.dense_3 = Linear(128, 64)
             self.dense_4 = Linear(64, 32)
@@ -76,9 +80,9 @@ class Network(Module):
             self.dense_7 = Linear(8, 1)
         else:
             raise Exception(f"[Exception-NA001] - {self.config['NetworkArchitecture']['type']} Architecture type is not supported!")
-    def forward(self, x):
-        assert x.shape[0] == self.config['NetworkArchitecture']['n_channels'], "Input data contains different number of channels!" 
-        assert (x.shape[1] == x.shape[2]) and (x.shape[2] == 128), "Height and width of the array is not 128!"
+    def forward(self, x, x_action = None):
+        # assert x.shape[0] == self.config['NetworkArchitecture']['n_channels'], "Input data contains different number of channels!" 
+        # assert (x.shape[1] == x.shape[2]) and (x.shape[2] == 128), "Height and width of the array is not 128!"
         
         x = ReLU()(self.cnn_1(x)) # (C, 128, 128) -> (32, 128, 128)
         x = Dropout(p = self.config['NetworkArchitecture']['p_dropout'])(x) 
@@ -96,7 +100,10 @@ class Network(Module):
         x = Dropout(p = self.config['NetworkArchitecture']['p_dropout'])(x)
         x = ReLU()(self.cnn_8(x)) # (256, 7, 7) -> (256, 5, 5)
         x = self.flat(x) # (256, 5, 5) -> (256 * 5 * 5)
-        x = ReLU()(self.dense_1(x)) # (256 * 5 * 5) -> 256
+        if x_action is not None:
+            x = torch.cat((ReLU()(self.dense_1(x)), x_action), dim = 0) # (256 * 5 * 5 + 1) -> 256
+        else:
+            x = ReLU()(self.dense_1(x)) # (256 * 5 * 5) -> 256
         x = Dropout(p = self.config['NetworkArchitecture']['p_dropout'])(x)
         x = ReLU()(self.dense_2(x)) # 256 -> 128
         x = Dropout(p = self.config['NetworkArchitecture']['p_dropout'])(x)
@@ -114,7 +121,22 @@ class Network(Module):
         else:
             x = Tanh(x)
         return x
-    def update(self):
-        pass
+    def update(self, *args):
+        optimizer = Adam(self.parameters(), lr = self.config['NetworkArchitecture']['learning_rate'])
+        if len(args) == 2:
+            # use squard mean loss to update the network
+            loss = MSELoss()(args[0], args[1])
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+        elif len(args) == 1:
+            # Mean of supplied argument as loss
+            loss = torch.mean(args[-1])
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+        else:
+            raise Exception("[Exception-NA002] - The supplied number of arguments is incorrect!")
     def update_parameters(self, TAU, parameters):
-        pass
+        for param in self.state_dict().keys():
+            self.state_dict()[param][0] = self.state_dict()[param] * TAU + (1 - TAU) * parameters[param][0]

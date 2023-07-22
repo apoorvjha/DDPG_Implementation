@@ -20,8 +20,9 @@ if __name__ == '__main__':
     env = environment.Environment(...)
     # Loop over the number of Episodes
     for episode in range(config["n_episodes"]):
-        # Defining Random Process (ETA) for action exploration    
-        ETA = Noise_Perturbation.OrnsteinUlembeckNoise(...)
+        # Defining Random Process (ETA) for action exploration
+        # Mean = 0 and standard deviation = 0.2    
+        ETA = Noise_Perturbation.OrnsteinUlembeckNoise(mean = np.zeros(1), std = float(config['std']) * np.ones(1))
         # Observe Initial State
         current_state, is_final = env.reset()
         # Instantiate Timestep variable

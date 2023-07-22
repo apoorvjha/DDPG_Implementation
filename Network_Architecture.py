@@ -131,7 +131,7 @@ class Network(Module):
             optimizer.step()
         elif len(args) == 1:
             # Mean of supplied argument as loss
-            loss = torch.mean(args[-1])
+            loss = -1 * torch.mean(args[-1])
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()

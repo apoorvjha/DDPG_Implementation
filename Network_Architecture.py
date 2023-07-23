@@ -78,9 +78,13 @@ class Network(Module):
             self.dense_4 = Linear(64, 32)
             self.dense_5 = Linear(32, 16)
             self.dense_6 = Linear(16, 8)
-            self.dense_7 = Linear(8, 1)
+            if mode == 'actor':
+                self.dense_7 = Linear(8, self.config['n_actions'])
+            else:    
+                self.dense_7 = Linear(8, 1)
         else:
             raise Exception(f"[Exception-NA001] - {self.config['NetworkArchitecture']['type']} Architecture type is not supported!")
+        self.optimizer = Adam(self.parameters(), lr = self.config['NetworkArchitecture']['learning_rate'])
     def forward(self, x, x_action = None):
         # assert x.shape[0] == self.config['NetworkArchitecture']['n_channels'], "Input data contains different number of channels!" 
         # assert (x.shape[1] == x.shape[2]) and (x.shape[2] == 128), "Height and width of the array is not 128!"
@@ -120,23 +124,22 @@ class Network(Module):
         if self.config['NetworkArchitecture']['output_activation'] == 'relu':
             x = ReLU()(x)
         else:
-            x = Tanh(x)
+            x = Tanh()(x)
         return x
     def update(self, *args):
-        optimizer = Adam(self.parameters(), lr = self.config['NetworkArchitecture']['learning_rate'])
         if len(args) == 2:
             # use squard mean loss to update the network
             loss = MSELoss()(args[0], args[1])
-            optimizer.zero_grad()
+            self.optimizer.zero_grad()
             loss.backward()
-            optimizer.step()
+            self.optimizer.step()
         elif len(args) == 1:
             # Mean of supplied argument as loss
             policy_gradient = -1 * torch.mean(args[-1])
             loss = policy_gradient.clone().detach().requires_grad_(True)
-            optimizer.zero_grad()
+            self.optimizer.zero_grad()
             loss.backward()
-            optimizer.step()
+            self.optimizer.step()
         else:
             raise Exception("[Exception-NA002] - The supplied number of arguments is incorrect!")
     def update_parameters(self, TAU, parameters):

@@ -1,12 +1,12 @@
 {
     "n_episodes" : 100,
     "experience_replay_buffer_size" : 15000,
-    "experience_replay_buffer_cutoff" : 5000,
+    "experience_replay_buffer_cutoff" : 500,
     "GAMMA" : 0.01,
     "TAU" : 0.001,
     "n_actions" : 3,
     "environment_name" : "CarRacing-v2",
-    "max_steps_per_episode" : 10000,
+    "max_steps_per_episode" : 1000,
     "std" : 0.2,
     "artefact_folder" : "./outputs",
     "NetworkArchitecture" : {

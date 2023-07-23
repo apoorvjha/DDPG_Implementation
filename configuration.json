@@ -1,11 +1,14 @@
 {
     "n_episodes" : 100,
+    "experience_replay_buffer_size" : 15000,
     "experience_replay_buffer_cutoff" : 5000,
     "GAMMA" : 0.01,
     "TAU" : 0.001,
     "NetworkArchitecture" : {
         "type" : "CNN",
         "n_channels" : 3,
+        "height" : 128,
+        "width" : 128,
         "p_dropout" : 0.2,
         "output_activation" : "relu",
         "learning_rate" : 1e-3

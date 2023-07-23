@@ -13,7 +13,7 @@ class ExperienceReplyBuffer:
         self.current_action = np.zeros(
             (
                 config['experience_replay_buffer_size'],
-                1
+                config['n_actions']
             )
         )
         self.next_state = np.zeros(

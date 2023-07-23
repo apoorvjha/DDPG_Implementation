@@ -40,7 +40,7 @@ if __name__ == '__main__':
             if T % config['max_steps_per_episode'] == 0:
                 break
             # Select action for current timestep
-            current_action = actor_network(torch.from_numpy(current_state).float()).detach().numpy().reshape(-1) + ETA.sample()
+            current_action = actor_network(torch.from_numpy(current_state).float()).cpu().detach().numpy().reshape(-1) + ETA.sample()
             # Observe next state and current reward
             next_state, reward, is_final, truncated, info = env.step(current_action)
             next_state = utility.zero_pad_state(next_state, config)

@@ -26,7 +26,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pytest numpy pandas torch torchvision torchaudio
+        pip install pytest numpy pandas torch torchvision torchaudio gymnasium Box2D pygame
     - name: Test with pytest
       run: |
         cd ./testing && pytest -q test_NetworkArchitecture.py || pytest -q test_ExperienceReplay.py

@@ -12,12 +12,12 @@ if __name__ == '__main__':
     # Get device
     device = utility.get_device()
     # Initializing Critic Network
-    critic_network = torch.nn.DataParallel(Network_Architecture.Network(config, mode = 'critic')).to(device)
+    critic_network = Network_Architecture.Network(config, mode = 'critic').to(device)
     # Initializing Actor Network
-    actor_network = torch.nn.DataParallel(Network_Architecture.Network(config)).to(device)
+    actor_network = Network_Architecture.Network(config).to(device)
     # Initializing Target counterparts of Actor and Critic Networks (Enhanced Learning Stability)
-    critic_target_network = torch.nn.DataParallel(Network_Architecture.Network(config, mode = 'critic')).to(device)
-    actor_target_network = torch.nn.DataParallel(Network_Architecture.Network(config)).to(device)
+    critic_target_network = Network_Architecture.Network(config, mode = 'critic').to(device)
+    actor_target_network = Network_Architecture.Network(config).to(device)
     # Initializing Experience Replay Buffer
     buffer = Experience_Replay.ExperienceReplyBuffer(config)
     # Initilize the Simulation Environment
@@ -39,8 +39,9 @@ if __name__ == '__main__':
         while(is_final):
             if T % config['max_steps_per_episode'] == 0:
                 break
+            # print(f"Executing timestep - {T} of Episode - {episode}")
             # Select action for current timestep
-            current_action = actor_network(torch.from_numpy(current_state).float()).cpu().detach().numpy().reshape(-1) + ETA.sample()
+            current_action = actor_network(torch.from_numpy(current_state).float().to(device)).cpu().detach().numpy().reshape(-1) + ETA.sample()
             # Observe next state and current reward
             next_state, reward, is_final, truncated, info = env.step(current_action)
             next_state = utility.zero_pad_state(next_state, config)
@@ -51,14 +52,15 @@ if __name__ == '__main__':
             current_state = next_state
             # Minibatch training
             if len(buffer) > config["experience_replay_buffer_cutoff"]:
+                torch.cuda.empty_cache()
                 # Get Minibatch data from buffer
                 current_states, current_actions, next_states, rewards = buffer.sample(config["experience_replay_buffer_cutoff"])
                 # Get Future Reward estimate from Bellman Equation
-                Y = rewards + config["GAMMA"] * critic_target_network(torch.from_numpy(next_states).float(), torch.from_numpy(current_actions).float())
+                Y = rewards + config["GAMMA"] * critic_target_network(torch.from_numpy(next_states).float().to(device), torch.from_numpy(current_actions).float().to(device)).cpu().detach().numpy().reshape(-1,1)
                 # Update the weights of Critic Network (Squared Mean Loss) 
-                critic_network.update(Y, critic_network(torch.from_numpy(current_states).float(), torch.from_numpy(current_actions).float()))
+                critic_network.update(torch.tensor(Y).float(), critic_network(torch.from_numpy(current_states).float().to(device), torch.from_numpy(current_actions).float().to(device)).cpu())
                 # Update Actor Network (Mean of Sampled Policy Gradients)
-                actor_network.update(critic_network(torch.from_numpy(current_states).float(), torch.from_numpy(current_actions).float()))
+                actor_network.update(critic_network(torch.from_numpy(current_states).float().to(device), torch.from_numpy(current_actions).float().to(device)).cpu().detach())
                 # Update the target Networks
                 critic_target_network.update_parameters(config["TAU"], critic_network.state_dict())
                 actor_target_network.update_parameters(config["TAU"], actor_network.state_dict())
